@@ -44,23 +44,34 @@ jitter(unsigned char *s, size_t len, float j) {
 }
 
 void
-para(unsigned char *s, size_t len, float r1, float r2, float x, float y, char flip) {
+para(unsigned char *s, size_t len, float r1, float r2, float r3, float x, float y, char flip_y, char exch_xy) {
     size_t len_sample = len / 2;
-    float _x = x;
-    float _y = y;
+    float max_y = 255.0;
     for(int idx = 0; idx < len_sample; idx += 2) {
-        float x = (((idx * 1.0) / (len_sample / 2))) - 1.0;
-        int idx_x = idx;
-        int idx_y = idx + 1;
-        if (flip) {
-            idx_x = idx + 1;
-            idx_y = idx;
-        }
-        s[idx_x] = (unsigned char)((x * r1) + _x);
-        s[idx_y] = (unsigned char)((pow(x * r2, 2.0) * r1) + _y);
+        float _x = ((((idx * 1.0) / (len_sample / 2))) - 1.0);
+        float _y = pow(_x * r3, 2.0) * r2 + y;
+        _x = (_x * r1) + x;
 
-        s[len - idx_x] = s[idx_x];
-        s[len - idx_y] = s[idx_y];
+        if (_y > max_y) {
+            s[idx] = 0x00;
+            s[idx + 1] = 0x00;
+        } else {
+            int idx_x = idx;
+            int idx_y = idx + 1;
+            if (exch_xy) {
+                idx_x = idx + 1;
+                idx_y = idx;
+            }
+            s[idx_x] = (unsigned char) _x;
+            if (flip_y) {
+                s[idx_y] = (unsigned char) ((_y - 127.0) * -1) + 127.0;
+            } else {
+                s[idx_y] = (unsigned char) _y;
+            }
+        }
+
+        s[len - idx] = s[idx];
+        s[len - idx - 1] = s[idx + 1];
     }
 }
 
