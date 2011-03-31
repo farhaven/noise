@@ -105,7 +105,7 @@ main(int argc, char *argv[]) {
 
     unsigned char *s = malloc(sizeof(char) * BUFLEN);
     while (1) {
-        para(s, BUFLEN, 50, 0.85, 127, 127, 1);
+        para(s, BUFLEN, 50, 75, 0.9, 127, 127, 1, 1);
         write(fd, s, BUFLEN);
     }
     free(s);
