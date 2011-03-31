@@ -24,13 +24,11 @@
 
 void
 circle(unsigned char *s, size_t len, float r, float x, float y) {
-    float _x = x;
-    float _y = y;
     size_t len_sample = len / 2;
     for(int idx = 0; idx < len_sample; idx += 2) {
-        float x = ((idx * 1.0) / len_sample) * (2.0 * M_PI);
-        s[idx] = (unsigned char)((cos(x) * r) + _x);
-        s[idx + 1] = (unsigned char)(sin(x) * r + _y);
+        float _x = ((idx * 1.0) / len_sample) * (2.0 * M_PI);
+        s[idx] = (unsigned char)((cos(_x) * r) + x);
+        s[idx + 1] = (unsigned char)(sin(_x) * r + y);
 
         s[len - idx] = s[idx];
         s[len - idx - 1] = s[idx + 1];
