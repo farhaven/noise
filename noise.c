@@ -13,25 +13,43 @@
 #define M_PI (3.14159265358979323846)
 #endif
 
-#define MAX(x, y) ((x > y) ? x : y)
-#define ABS(x) ((x >= 0) ? x : -x)
-
 #define SIZE 8     /* sample size: 8 or 16 bits */
 #define CHANNELS 2 /* 1 = mono 2 = stereo */
-#define RATE (1000 * 1000) /* the sampling rate */
+#define RATE (1000 * 2) /* the sampling rate */
 
 #define BUFLEN (1024 * 4)
 
+unsigned char pyramid_data[] = {
+    0x00, 0x50, 0x48, 0x00,
+    0x7f, 0x7f, 0x20, 0x7f,
+    0x48, 0x00, 0x20, 0x7f
+};
+
+void
+rotate(unsigned char *s, size_t len, float angle) {
+    for (int i = 0; i < len; i += 2) {
+        float x = s[i];
+        float y = s[i + 1];
+        
+        float x2 = x * cos(angle) - y * sin(angle);
+        float y2 = y * cos(angle) + x * sin(angle);
+
+        s[i] = (unsigned char) x2 + 0x7f;
+        s[i + 1] = (unsigned char) y2 + 0x7f;
+    }
+}
+
 void
 circle(unsigned char *s, size_t len, float r, float x, float y) {
-    size_t len_sample = len / 2;
+    // size_t len_sample = len / 2;
+    size_t len_sample = len;
     for(int idx = 0; idx < len_sample; idx += 2) {
         float _x = ((idx * 1.0) / len_sample) * (2.0 * M_PI);
         s[idx] = (unsigned char)((cos(_x) * r) + x);
         s[idx + 1] = (unsigned char)(sin(_x) * r + y);
 
-        s[len - idx] = s[idx];
-        s[len - idx - 1] = s[idx + 1];
+        // s[len - idx] = s[idx];
+        // s[len - idx - 1] = s[idx + 1];
     }
 }
 
@@ -45,7 +63,8 @@ jitter(unsigned char *s, size_t len, float j) {
 
 void
 para(unsigned char *s, size_t len, float r1, float r2, float r3, float x, float y, char flip_y, char exch_xy) {
-    size_t len_sample = len / 2;
+    // size_t len_sample = len / 2;
+    size_t len_sample = len;
     float max_y = 255.0;
     for(int idx = 0; idx < len_sample; idx += 2) {
         float _x = ((((idx * 1.0) / (len_sample / 2))) - 1.0);
@@ -70,8 +89,9 @@ para(unsigned char *s, size_t len, float r1, float r2, float r3, float x, float 
             }
         }
 
-        s[len - idx] = s[idx];
+        /* s[len - idx] = s[idx];
         s[len - idx - 1] = s[idx + 1];
+        */
     }
 }
 
@@ -103,12 +123,45 @@ main(int argc, char *argv[]) {
     status = ioctl(fd, SOUND_PCM_WRITE_RATE, &arg);
     if (status == -1) perror("SOUND_PCM_WRITE_WRITE ioctl failed");
 
-    unsigned char *s = malloc(sizeof(char) * BUFLEN);
+    for (int idx = 0; idx < sizeof(pyramid_data); idx++)
+        pyramid_data[idx] *= 0.5;
+
+    unsigned char *s = malloc(sizeof(pyramid_data));
+    float angle = 0;
+    float size = 0.75;
+    float size_max = 0.8;
+    float size_min = 0.3;
+    float size_inc = 0.001;
     while (1) {
-        para(s, BUFLEN, 50, 75, 0.9, 127, 127, 1, 1);
-        write(fd, s, BUFLEN);
+        angle += 0.001;
+        size += size_inc;
+        if (size > size_max) size_inc = -0.001;
+        if (size < size_min) size_inc = 0.001;
+
+        memcpy(s, pyramid_data, sizeof(pyramid_data));
+
+        for (int idx = 0; idx < sizeof(pyramid_data); idx++)
+            s[idx] *= size;
+
+        rotate(s, sizeof(pyramid_data), angle);
+        write(fd, s, sizeof(pyramid_data));
     }
     free(s);
 
     return 0;
 }
+
+
+/* Smiley face */
+    /* circle(s, BUFLEN, 100, 127, 127);
+    jitter(s, BUFLEN, 5);
+    write(fd, s, BUFLEN);
+    circle(s, BUFLEN / 2, 20, 180, 90);
+    jitter(s, BUFLEN, 5);
+    write(fd, s, BUFLEN / 2);
+    circle(s, BUFLEN / 2, 20, 80, 90);
+    jitter(s, BUFLEN, 5);
+    write(fd, s, BUFLEN / 2);
+    para(s, BUFLEN / 2, 50, 0.5, 5, 130, 70, 1, 0);
+    jitter(s, BUFLEN, 5);
+    write(fd, s, BUFLEN / 2); */
