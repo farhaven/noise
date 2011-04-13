@@ -20,9 +20,63 @@
 #define BUFLEN (1024 * 4)
 
 unsigned char pyramid_data[] = {
-    0x00, 0x50, 0x48, 0x00,
-    0x7f, 0x7f, 0x20, 0x7f,
-    0x48, 0x00, 0x20, 0x7f
+    0x00, 0x5f, 0x3f, 0x00,
+    0x7f, 0x7f, 0x5f, 0x5f,
+    0x3f, 0x00, 0x1f, 0x7f,
+    0x7f, 0x7f, 0x5f, 0x5f,
+    0x00, 0x5f, 0x1f, 0x7f
+};
+
+unsigned char data_c[] = {
+    0xfa, 0xc8, 0xe1, 0xe1, 0xc8, 0xfa, /* 1 -> 2 */
+    0x64, 0xfa, 0x32, 0xfa, /* 2 -> 3 */
+    0x19, 0xe1, 0x00, 0xc8, /* 3 -> 4 */
+    0x00, 0x64, 0x00, 0x32, /* 4 -> 5 */
+    0x19, 0x19, 0x32, 0x00, /* 5 -> 6 */
+    0x64, 0x00, 0xc8, 0x00, /* 6 -> 7 */
+    0xe1, 0x19, 0xfa, 0x32, /* 7 -> 8 */
+
+    0xe1, 0x19, 0xc8, 0x00,
+    0x64, 0x00, 0x32, 0x00,
+    0x19, 0x19, 0x00, 0x32,
+    0x00, 0x64, 0x00, 0xc8,
+    0x19, 0xe1, 0x32, 0xfa,
+    0x64, 0xfa, 0xc8, 0xfa,
+    0xe1, 0xe1
+};
+
+unsigned char data_3[] = {
+    0x00, 0xbf, 0x40, 0xff,
+    0x7f, 0xff, 0xbf, 0xbf,
+    0x7f, 0x7f, 0xbf, 0x40,
+    0x7f, 0x00, 0x40, 0x00,
+    0x00, 0x40,
+
+    0x40, 0x00, 0x7f, 0x00,
+    0xbf, 0x40, 0x7f, 0x7f,
+    0xbf, 0xbf, 0x7f, 0xff,
+    0x40, 0xff
+};
+
+unsigned char data_p[] = {
+    0x00, 0x00, 0x00, 0x7f,
+    0x40, 0x7f, 0x7f, 0xbf,
+    0x40, 0xff, 0x00, 0xff
+};
+
+unsigned char data_b[] = {
+    0x00, 0x00, 0x40, 0x00,
+    0x7f, 0x40, 0x40, 0x7f,
+    0x00, 0x7f, 0x00, 0xff,
+    0x40, 0xff, 0x7f, 0xbf,
+    0x40, 0x7f, 0x00, 0x7f,
+    0x00, 0x00,
+
+    0x00, 0x7f, 0x40, 0x7f,
+    0x7f, 0xbf, 0x40, 0xff,
+    0x00, 0xff, 0x00, 0x7f,
+    0x40, 0x7f, 0x7f, 0x40,
+    0x40, 0x00
 };
 
 void
@@ -34,8 +88,8 @@ rotate(unsigned char *s, size_t len, float angle) {
         float x2 = x * cos(angle) - y * sin(angle);
         float y2 = y * cos(angle) + x * sin(angle);
 
-        s[i] = (unsigned char) x2 + 0x7f;
-        s[i + 1] = (unsigned char) y2 + 0x7f;
+        s[i] = (unsigned char) x2 + 0x70;
+        s[i + 1] = (unsigned char) y2 + 0x70;
     }
 }
 
@@ -126,27 +180,84 @@ main(int argc, char *argv[]) {
     for (int idx = 0; idx < sizeof(pyramid_data); idx++)
         pyramid_data[idx] *= 0.5;
 
-    unsigned char *s = malloc(sizeof(pyramid_data));
+    unsigned char *s;
+    unsigned char *d;
+    size_t d_size;
     float angle = 0;
-    float size = 0.75;
-    float size_max = 0.8;
-    float size_min = 0.3;
-    float size_inc = 0.001;
-    while (1) {
-        angle += 0.001;
-        size += size_inc;
-        if (size > size_max) size_inc = -0.001;
-        if (size < size_min) size_inc = 0.001;
-
-        memcpy(s, pyramid_data, sizeof(pyramid_data));
-
-        for (int idx = 0; idx < sizeof(pyramid_data); idx++)
-            s[idx] *= size;
-
-        rotate(s, sizeof(pyramid_data), angle);
-        write(fd, s, sizeof(pyramid_data));
+    unsigned char m = 0;
+    for (off_t idx = 0; idx < sizeof(data_p); idx++) {
+        data_p[idx] = 255 - data_p[idx];
     }
-    free(s);
+    while (1) {
+        write(STDOUT_FILENO, data_p, sizeof(data_p));
+        write(fd, data_p, sizeof(data_p));
+        continue;
+        if ((m == 0) || (m == 5)) {
+            s = malloc(sizeof(pyramid_data));
+            angle += 0.01;
+            float size = (sin(angle) + 1) * 0.5;
+            if (size <= 0.01) {
+                m++;
+                angle = 0;
+                continue;
+            }
+
+            memcpy(s, pyramid_data, sizeof(pyramid_data));
+
+            for (int idx = 0; idx < sizeof(pyramid_data); idx++)
+                s[idx] *= size;
+
+            jitter(s, sizeof(pyramid_data), 1);
+            write(fd, s, sizeof(pyramid_data));
+            free(s);
+        } else if (m == 1) {
+            d = data_c;
+            d_size = sizeof(data_c);
+        } else if (m == 2) {
+            d = data_3;
+            d_size = sizeof(data_3);
+        } else if (m == 3) {
+            d = data_p;
+            d_size = sizeof(data_p);
+        } else if (m == 4) {
+            d = data_b;
+            d_size = sizeof(data_b);
+        }
+        if ((m > 0) && (m <= 4)) {
+            s = malloc(d_size);
+            memcpy(s, d, d_size);
+            angle += 0.05;
+            float size = (sin(angle) + 1) * 0.125;
+            if (size <= 0.01) {
+                m++;
+                angle = 0;
+                continue;
+            }
+
+            for (int idx = 0; idx < d_size; idx++) {
+                s[idx] = 255 - s[idx];
+                s[idx] *= size;
+            }
+            jitter(s, d_size, 2);
+            write(fd, s, d_size);
+            if (m == 3)
+                write(fd, s, d_size);
+            free(s);
+        } else if (m > 5) {
+            s = malloc(sizeof(pyramid_data));
+            angle += 0.01;
+            if (angle > (2.0 * M_PI)) angle = 0;
+            memcpy(s, pyramid_data, sizeof(pyramid_data));
+
+            for (int idx = 0; idx < sizeof(pyramid_data); idx++)
+                s[idx] *= 0.75;
+
+            jitter(s, sizeof(pyramid_data), 1);
+            rotate(s, sizeof(pyramid_data), angle);
+            write(fd, s, sizeof(pyramid_data));
+            free(s);
+        }
+    }
 
     return 0;
 }
