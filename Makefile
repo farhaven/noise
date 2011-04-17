@@ -2,7 +2,7 @@ CC=clang
 CCFLAGS=-Wall
 LDFLAGS=-lm
 
-noise: noise.c
+noise: noise.o
 	$(CC) $(LDFLAGS) -o noise noise.o
 
 noise.o: noise.c

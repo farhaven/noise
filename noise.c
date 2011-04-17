@@ -171,10 +171,6 @@ main(int argc, char *argv[]) {
 
     unsigned char *s;
     unsigned char *d;
-    unsigned char x, max_x = 0xF0, min_x = 0x10, dir_x = 1;
-    unsigned char y, max_y = 0xF0, min_y = 0x10, dir_y = 1;
-    x = max_x / 2;
-    y = max_y / 3;
     size_t d_size;
     float angle = 0;
     unsigned char m = 0;
@@ -260,37 +256,7 @@ main(int argc, char *argv[]) {
             write(fd, s, sizeof(pyramid_data));
             free(s);
         } else if (m > 8) {
-            continue;
-            unsigned char f[] = {
-                0x10, 0x10,
-                0x10, 0xF0,
-                0xF0, 0xF0,
-                0xF0, 0x10,
-            };
-            write(fd, f, sizeof(f));
-
-            for (off_t o = 1; o < sizeof(f); o += 2)
-                fprintf(stdout, "%d\n", f[o]);
-
-            x += dir_x;
-            y += dir_y;
-
-            if (x >= max_x - 0x10) dir_x = -1;
-            if (x <= min_x + 0x10) dir_x = 1;
-            if (y >= max_y - 0x10) dir_y = -1;
-            if (y <= min_y + 0x10) dir_y = 1;
-
-            unsigned char b[] = {
-                0x00 + x, 0x00 + y,
-                0x00 + x, 0x0F + y,
-                0x0F + x, 0x0F + y,
-                0x0F + x, 0x00 + y,
-            };
-
-            for (off_t o = 1; o < sizeof(b); o += 2)
-                fprintf(stdout, "%d\n", b[o]);
-
-            write(fd, b, sizeof(b));
+            exit(0);
         }
     }
 
