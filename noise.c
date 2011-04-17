@@ -175,35 +175,23 @@ main(int argc, char *argv[]) {
     float angle = 0;
     unsigned char m = 0;
     while (1) {
-        if ((m == 0) || (m == 5)) {
-            s = malloc(sizeof(pyramid_data));
-            angle += 0.01;
-            float size = (sin(angle) + 1) * 0.5;
-            if (size <= 0.01) {
-                m++;
-                angle = 0;
-                continue;
-            }
-
-            memcpy(s, pyramid_data, sizeof(pyramid_data));
-
-            for (int idx = 0; idx < sizeof(pyramid_data); idx++)
-                s[idx] *= size;
-
-            write(fd, s, sizeof(pyramid_data));
-            free(s);
-        } else if (m == 1) {
-            d = data_c;
-            d_size = sizeof(data_c);
-        } else if (m == 2) {
-            d = data_3;
-            d_size = sizeof(data_3);
-        } else if (m == 3) {
-            d = data_p;
-            d_size = sizeof(data_p);
-        } else if (m == 4) {
-            d = data_b;
-            d_size = sizeof(data_b);
+        switch(m) {
+            case 1:
+                d = data_c;
+                d_size = sizeof(data_c);
+                break;
+            case 2:
+                d = data_3;
+                d_size = sizeof(data_3);
+                break;
+            case 3:
+                d = data_p;
+                d_size = sizeof(data_p);
+                break;
+            case 4:
+                d = data_b;
+                d_size = sizeof(data_b);
+                break;
         }
         if ((m > 0) && (m <= 4)) {
             s = malloc(d_size);
@@ -257,6 +245,24 @@ main(int argc, char *argv[]) {
             free(s);
         } else if (m > 8) {
             exit(0);
+        }
+        if ((m == 0) || (m == 5)) {
+            s = malloc(sizeof(pyramid_data));
+            angle += 0.01;
+            float size = (sin(angle) + 1) * 0.5;
+            if (size <= 0.01) {
+                m++;
+                angle = 0;
+                continue;
+            }
+
+            memcpy(s, pyramid_data, sizeof(pyramid_data));
+
+            for (int idx = 0; idx < sizeof(pyramid_data); idx++)
+                s[idx] *= size;
+
+            write(fd, s, sizeof(pyramid_data));
+            free(s);
         }
     }
 
