@@ -15,7 +15,7 @@
 
 #define SIZE 8     /* sample size: 8 or 16 bits */
 #define CHANNELS 2 /* 1 = mono 2 = stereo */
-#define RATE (1000 * 2) /* the sampling rate */
+#define RATE (1000 * 0.5) /* the sampling rate */
 
 #define BUFLEN (1024 * 4)
 
@@ -95,15 +95,10 @@ rotate(unsigned char *s, size_t len, float angle) {
 
 void
 circle(unsigned char *s, size_t len, float r, float x, float y) {
-    // size_t len_sample = len / 2;
-    size_t len_sample = len;
-    for(int idx = 0; idx < len_sample; idx += 2) {
-        float _x = ((idx * 1.0) / len_sample) * (2.0 * M_PI);
+    for(int idx = 0; idx < len; idx += 2) {
+        float _x = ((idx * 1.0) / len) * (2.0 * M_PI);
         s[idx] = (unsigned char)((cos(_x) * r) + x);
         s[idx + 1] = (unsigned char)(sin(_x) * r + y);
-
-        // s[len - idx] = s[idx];
-        // s[len - idx - 1] = s[idx + 1];
     }
 }
 
@@ -117,11 +112,9 @@ jitter(unsigned char *s, size_t len, float j) {
 
 void
 para(unsigned char *s, size_t len, float r1, float r2, float r3, float x, float y, char flip_y, char exch_xy) {
-    // size_t len_sample = len / 2;
-    size_t len_sample = len;
     float max_y = 255.0;
-    for(int idx = 0; idx < len_sample; idx += 2) {
-        float _x = ((((idx * 1.0) / (len_sample / 2))) - 1.0);
+    for(int idx = 0; idx < len; idx += 2) {
+        float _x = ((((idx * 1.0) / (len/ 2))) - 1.0);
         float _y = pow(_x * r3, 2.0) * r2 + y;
         _x = (_x * r1) + x;
 
@@ -142,10 +135,6 @@ para(unsigned char *s, size_t len, float r1, float r2, float r3, float x, float 
                 s[idx_y] = (unsigned char) _y;
             }
         }
-
-        /* s[len - idx] = s[idx];
-        s[len - idx - 1] = s[idx + 1];
-        */
     }
 }
 
@@ -182,16 +171,14 @@ main(int argc, char *argv[]) {
 
     unsigned char *s;
     unsigned char *d;
+    unsigned char x, max_x = 0xF0, min_x = 0x10, dir_x = 1;
+    unsigned char y, max_y = 0xF0, min_y = 0x10, dir_y = 1;
+    x = max_x / 2;
+    y = max_y / 3;
     size_t d_size;
     float angle = 0;
     unsigned char m = 0;
-    for (off_t idx = 0; idx < sizeof(data_p); idx++) {
-        data_p[idx] = 255 - data_p[idx];
-    }
     while (1) {
-        write(STDOUT_FILENO, data_p, sizeof(data_p));
-        write(fd, data_p, sizeof(data_p));
-        continue;
         if ((m == 0) || (m == 5)) {
             s = malloc(sizeof(pyramid_data));
             angle += 0.01;
@@ -207,7 +194,6 @@ main(int argc, char *argv[]) {
             for (int idx = 0; idx < sizeof(pyramid_data); idx++)
                 s[idx] *= size;
 
-            jitter(s, sizeof(pyramid_data), 1);
             write(fd, s, sizeof(pyramid_data));
             free(s);
         } else if (m == 1) {
@@ -238,24 +224,73 @@ main(int argc, char *argv[]) {
                 s[idx] = 255 - s[idx];
                 s[idx] *= size;
             }
-            jitter(s, d_size, 2);
             write(fd, s, d_size);
             if (m == 3)
                 write(fd, s, d_size);
             free(s);
-        } else if (m > 5) {
+        } else if (m == 6) { 
+            s = malloc(sizeof(pyramid_data));
+            float size = (log((angle + 0.01) * 10) - 1) * 0.1;
+            angle += 1;
+            if (size >= 0.75) {
+                angle = 0;
+                m++;
+                continue;
+            }
+
+            memcpy(s, pyramid_data, sizeof(pyramid_data));
+            for (int idx = 0; idx < sizeof(pyramid_data); idx++)
+                s[idx] *= size;
+            write(fd, s, sizeof(pyramid_data));
+
+            free(s);
+        } else if ((m > 6) && (m <= 8)) {
             s = malloc(sizeof(pyramid_data));
             angle += 0.01;
-            if (angle > (2.0 * M_PI)) angle = 0;
+            if (angle > (2.0 * M_PI)) {
+                angle = 0;
+                m++;
+            }
             memcpy(s, pyramid_data, sizeof(pyramid_data));
 
             for (int idx = 0; idx < sizeof(pyramid_data); idx++)
                 s[idx] *= 0.75;
 
-            jitter(s, sizeof(pyramid_data), 1);
             rotate(s, sizeof(pyramid_data), angle);
             write(fd, s, sizeof(pyramid_data));
             free(s);
+        } else if (m > 8) {
+            continue;
+            unsigned char f[] = {
+                0x10, 0x10,
+                0x10, 0xF0,
+                0xF0, 0xF0,
+                0xF0, 0x10,
+            };
+            write(fd, f, sizeof(f));
+
+            for (off_t o = 1; o < sizeof(f); o += 2)
+                fprintf(stdout, "%d\n", f[o]);
+
+            x += dir_x;
+            y += dir_y;
+
+            if (x >= max_x - 0x10) dir_x = -1;
+            if (x <= min_x + 0x10) dir_x = 1;
+            if (y >= max_y - 0x10) dir_y = -1;
+            if (y <= min_y + 0x10) dir_y = 1;
+
+            unsigned char b[] = {
+                0x00 + x, 0x00 + y,
+                0x00 + x, 0x0F + y,
+                0x0F + x, 0x0F + y,
+                0x0F + x, 0x00 + y,
+            };
+
+            for (off_t o = 1; o < sizeof(b); o += 2)
+                fprintf(stdout, "%d\n", b[o]);
+
+            write(fd, b, sizeof(b));
         }
     }
 
