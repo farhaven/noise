@@ -262,18 +262,3 @@ main(int argc, char *argv[]) {
 
     return 0;
 }
-
-
-/* Smiley face */
-    /* circle(s, BUFLEN, 100, 127, 127);
-    jitter(s, BUFLEN, 5);
-    write(fd, s, BUFLEN);
-    circle(s, BUFLEN / 2, 20, 180, 90);
-    jitter(s, BUFLEN, 5);
-    write(fd, s, BUFLEN / 2);
-    circle(s, BUFLEN / 2, 20, 80, 90);
-    jitter(s, BUFLEN, 5);
-    write(fd, s, BUFLEN / 2);
-    para(s, BUFLEN / 2, 50, 0.5, 5, 130, 70, 1, 0);
-    jitter(s, BUFLEN, 5);
-    write(fd, s, BUFLEN / 2); */
