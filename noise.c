@@ -15,40 +15,35 @@
 
 int
 main(int argc, char *argv[]) {
-    int fd;	    /* sound device file descriptor */
-    int arg;	/* argument for ioctl calls */
-    int status; /* return status of system calls */
+    int fd, arg, status;
+    unsigned char *s, *d;
+    size_t d_size;
+    float angle = 0;
+    unsigned char m = 0;
 
-    /* open sound device */
     fd = open("/dev/dsp", O_RDWR);
     if (fd < 0) {
         perror("open of /dev/dsp failed");
         exit(1);
     }
 
-    /* set sampling parameters */
-    arg = SIZE;	   /* sample size */
+    arg = SIZE;
     status = ioctl(fd, SOUND_PCM_WRITE_BITS, &arg);
     if (status == -1) perror("SOUND_PCM_WRITE_BITS ioctl failed");
     if (arg != SIZE) perror("unable to set sample size");
 
-    arg = CHANNELS;  /* mono or stereo */
+    arg = CHANNELS;
     status = ioctl(fd, SOUND_PCM_WRITE_CHANNELS, &arg);
     if (status == -1) perror("SOUND_PCM_WRITE_CHANNELS ioctl failed");
     if (arg != CHANNELS) perror("unable to set number of channels");
 
-    arg = RATE;	   /* sampling rate */
+    arg = RATE;
     status = ioctl(fd, SOUND_PCM_WRITE_RATE, &arg);
     if (status == -1) perror("SOUND_PCM_WRITE_WRITE ioctl failed");
 
     for (int idx = 0; idx < sizeof(pyramid_data); idx++)
         pyramid_data[idx] *= 0.5;
 
-    unsigned char *s;
-    unsigned char *d;
-    size_t d_size;
-    float angle = 0;
-    unsigned char m = 0;
     while (1) {
         switch(m) {
             case 1:
