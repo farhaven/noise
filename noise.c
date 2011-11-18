@@ -1,45 +1,26 @@
 #include <unistd.h>
-#include <fcntl.h>
-#include <sys/types.h>
-#include <sys/ioctl.h>
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-#include <linux/soundcard.h>
 
 #include <math.h>
 
 #include "misc.h"
 #include "draw.h"
 #include "data.h"
+#include "snd.h"
 
 int
 main(int argc, char *argv[]) {
-    int fd, arg, status;
     unsigned char *s, *d;
-    size_t d_size;
+    size_t d_size, samples = 0;
     float angle = 0;
     unsigned char m = 0;
 
-    fd = open("/dev/dsp", O_RDWR);
-    if (fd < 0) {
-        perror("open of /dev/dsp failed");
-        exit(1);
-    }
-
-    arg = SIZE;
-    status = ioctl(fd, SOUND_PCM_WRITE_BITS, &arg);
-    if (status == -1) perror("SOUND_PCM_WRITE_BITS ioctl failed");
-    if (arg != SIZE) perror("unable to set sample size");
-
-    arg = CHANNELS;
-    status = ioctl(fd, SOUND_PCM_WRITE_CHANNELS, &arg);
-    if (status == -1) perror("SOUND_PCM_WRITE_CHANNELS ioctl failed");
-    if (arg != CHANNELS) perror("unable to set number of channels");
-
-    arg = RATE;
-    status = ioctl(fd, SOUND_PCM_WRITE_RATE, &arg);
-    if (status == -1) perror("SOUND_PCM_WRITE_WRITE ioctl failed");
+	if (!snd_open()) {
+		fprintf(stderr, "opening sound device failed\n");
+		exit(1);
+	}
 
     for (int idx = 0; idx < sizeof(pyramid_data); idx++)
         pyramid_data[idx] *= 0.5;
@@ -78,9 +59,9 @@ main(int argc, char *argv[]) {
                 s[idx] = 255 - s[idx];
                 s[idx] *= size;
             }
-            write(fd, s, d_size);
+            samples += snd_write(s, d_size);
             if (m == 3)
-                write(fd, s, d_size);
+                samples += snd_write(s, d_size);
             free(s);
         } else if (m == 6) { 
             s = malloc(sizeof(pyramid_data));
@@ -95,7 +76,7 @@ main(int argc, char *argv[]) {
             memcpy(s, pyramid_data, sizeof(pyramid_data));
             for (int idx = 0; idx < sizeof(pyramid_data); idx++)
                 s[idx] *= size;
-            write(fd, s, sizeof(pyramid_data));
+            samples += snd_write(s, sizeof(pyramid_data));
 
             free(s);
         } else if ((m > 6) && (m <= 8)) {
@@ -111,9 +92,10 @@ main(int argc, char *argv[]) {
                 s[idx] *= 0.75;
 
             rotate(s, sizeof(pyramid_data), angle);
-            write(fd, s, sizeof(pyramid_data));
+            samples += snd_write(s, sizeof(pyramid_data));
             free(s);
         } else if (m > 8) {
+			printf("\nanimation ended... %lu samples played\n", samples);
             exit(0);
         }
         if ((m == 0) || (m == 5)) {
@@ -131,7 +113,7 @@ main(int argc, char *argv[]) {
             for (int idx = 0; idx < sizeof(pyramid_data); idx++)
                 s[idx] *= size;
 
-            write(fd, s, sizeof(pyramid_data));
+            samples += snd_write(s, sizeof(pyramid_data));
             free(s);
         }
     }
