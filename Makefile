@@ -1,6 +1,9 @@
 CC=clang
-CCFLAGS=-Wall
-LDFLAGS=-lm
+CFLAGS=-Werror -g -pedantic -Wall -I/usr/local/include
+LDFLAGS=-lm -lSDL -L/usr/local/lib
+
+sdl: snd_sdl.o noise.o draw.o
+	$(CC) $(LDFLAGS) -o noise noise.o draw.o snd_sdl.o
 
 linux: snd_linux.o noise.o draw.o
 	$(CC) $(LDFLAGS) -o noise noise.o draw.o snd_linux.o
