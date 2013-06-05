@@ -3,10 +3,10 @@ CFLAGS=-Werror -g -pedantic -Wall -I/usr/local/include
 LDFLAGS=-lm -lSDL -L/usr/local/lib
 
 sdl: snd_sdl.o noise.o draw.o
-	$(CC) $(LDFLAGS) -o noise noise.o draw.o snd_sdl.o
+	$(CC) -o noise noise.o draw.o snd_sdl.o $(LDFLAGS)
 
 linux: snd_linux.o noise.o draw.o
-	$(CC) $(LDFLAGS) -o noise noise.o draw.o snd_linux.o
+	$(CC) -o noise noise.o draw.o snd_linux.o $(LDFLAGS)
 
 openbsd: snd_openbsd.o noise.o draw.o
 	$(CC) $(LDFLAGS) -lsndio -o noise noise.o draw.o snd_openbsd.o
