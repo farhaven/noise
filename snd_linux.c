@@ -13,7 +13,7 @@ snd_write(unsigned char *data, int len) {
 
 int
 snd_open(void) {
-	int arg;
+	int arg, status;
 
 	soundfd = open("/dev/dsp", O_RDWR);
 	if (soundfd < 0) {
